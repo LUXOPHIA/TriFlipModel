@@ -1,2 +1,2 @@
-﻿# TriMeshModel
-ポリゴンモデルを TriMesh データ構造で扱う方法。
+﻿# TriFlipModel
+ポリゴンモデルを TriFlip データ構造で扱う方法。
