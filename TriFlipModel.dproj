@@ -311,9 +311,6 @@
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\LUX.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX\LUX.D1.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX.Brep\LUX.Brep.pas"/>
-        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX.Brep\LUX.Brep.TetraMesh.Delaunay.pas"/>
-        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX.Brep\LUX.Brep.TetraMesh.FMX.pas"/>
-        <DCCReference Include="_LIBRARY\LUXOPHIA\LUX.Brep\LUX.Brep.TetraMesh.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX.Graph\LUX.Graph.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX.Graph\LUX.Graph.Tree.pas"/>
         <DCCReference Include="_LIBRARY\LUXOPHIA\LUX.Brep\LUX.Brep.Poin.D3.pas"/>
@@ -351,12 +348,24 @@
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
-                <DeployFile LocalName="$(BDS)\Redist\iossimulator\libcgunwind.1.0.dylib" Class="DependencyModule">
-                    <Platform Name="iOSSimulator">
+                <DeployFile LocalName="Win64\Debug\TriFlipModel.rsm" Configuration="Debug" Class="DebugSymbols">
+                    <Platform Name="Win64">
+                        <RemoteName>TriFlipModel.rsm</RemoteName>
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="Win64\Debug\TriFlipModel.exe" Configuration="Debug" Class="ProjectOutput">
+                    <Platform Name="Win64">
+                        <RemoteName>TriFlipModel.exe</RemoteName>
                         <Overwrite>true</Overwrite>
                     </Platform>
                 </DeployFile>
                 <DeployFile LocalName="$(BDS)\Redist\iossimulator\libPCRE.dylib" Class="DependencyModule">
+                    <Platform Name="iOSSimulator">
+                        <Overwrite>true</Overwrite>
+                    </Platform>
+                </DeployFile>
+                <DeployFile LocalName="$(BDS)\Redist\iossimulator\libcgunwind.1.0.dylib" Class="DependencyModule">
                     <Platform Name="iOSSimulator">
                         <Overwrite>true</Overwrite>
                     </Platform>
