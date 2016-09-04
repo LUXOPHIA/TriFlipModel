@@ -2,8 +2,7 @@
 
 interface //#################################################################### ■
 
-uses System.SysUtils, System.UITypes, System.Math.Vectors,
-     FMX.Graphics, FMX.Types3D, FMX.Controls3D, FMX.Objects3D;
+uses System.Types, System.SysUtils, System.Classes, System.Math.Vectors;
 
 type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【型】
 
@@ -36,18 +35,6 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
        property Translate :TPoint3D read GetTranslate write SetTranslate;
        ///// 定数
        class function Identity :TMatrix3D; static;
-     end;
-
-     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HBitmapData
-
-     HBitmapData = record helper for TBitmapData
-     private
-       ///// アクセス
-       function GetColor( const X_,Y_:Integer ) :TAlphaColor;
-       procedure SetColor( const X_,Y_:Integer; const Color_:TAlphaColor );
-     public
-       ///// プロパティ
-       property Color[ const X_,Y_:Integer ] :TAlphaColor read GetColor write SetColor;
      end;
 
      //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TRay3D
@@ -115,49 +102,6 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
 
      //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【クラス】
 
-     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HCanvas
-
-     HCanvas = class helper for TCanvas
-     private
-     protected
-       ///// アクセス
-       function GetMatrix :TMatrix;
-       procedure SetMatrix( const Matrix_:TMatrix );
-     public
-       property Matrix :TMatrix read GetMatrix write SetMatrix;
-     end;
-
-     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HControl3D
-
-     HControl3D = class helper for TControl3D
-     private
-     protected
-       ///// アクセス
-       function GetAbsolMatrix :TMatrix3D;
-       procedure SetAbsoluteMatrix( const AbsoluteMatrix_:TMatrix3D ); virtual;
-       function GetLocalMatrix :TMatrix3D; virtual;
-       procedure SetLocalMatrix( const LocalMatrix_:TMatrix3D ); virtual;
-       ///// メソッド
-       procedure RecalcFamilyAbsolute;
-       procedure RecalcChildrenAbsolute;
-     public
-       ///// プロパティ
-       property AbsoluteMatrix :TMatrix3D read GetAbsolMatrix write SetAbsoluteMatrix;
-       property LocalMatrix    :TMatrix3D read GetLocalMatrix write SetLocalMatrix   ;
-     end;
-
-     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HCustomMesh
-
-     HCustomMesh = class helper for TCustomMesh
-     private
-     protected
-       ///// アクセス
-       function GetMeshData :TMeshData;
-     public
-       ///// プロパティ
-       property MeshData :TMeshData read GetMeshData;
-     end;
-
      //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TIter< TValue_ >
 
      TIter< TValue_ > = class
@@ -169,6 +113,23 @@ type //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$
      public
        ///// プロパティ
        property Value :TValue_ read GetValue write SetValue;
+     end;
+
+     //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TFileReader
+
+     TFileReader = class( TBinaryReader )
+     private
+     protected
+       _Encoding  :TEncoding;
+       _OffsetBOM :Integer;
+     public
+       constructor Create( Stream_:TStream; Encoding_:TEncoding = nil; OwnsStream_:Boolean = False ); overload;
+       constructor Create( const Filename_:String; Encoding_:TEncoding = nil ); overload;
+       ///// プロパティ
+       property OffsetBOM :Integer read _OffsetBOM;
+       ///// メソッド
+       function EndOfStream :Boolean;
+       function ReadLine :String;
      end;
 
 const //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【定数】
@@ -228,6 +189,14 @@ function Max( const A_,B_,C_:Integer ) :Integer; overload;
 function Max( const A_,B_,C_:Single ) :Single; overload;
 function Max( const A_,B_,C_:Double ) :Double; overload;
 
+function MinI( const A_,B_:Integer ) :Byte; inline; overload;
+function MinI( const A_,B_:Single ) :Byte; inline; overload;
+function MinI( const A_,B_:Double ) :Byte; inline; overload;
+
+function MaxI( const A_,B_:Integer ) :Byte; inline; overload;
+function MaxI( const A_,B_:Single ) :Byte; inline; overload;
+function MaxI( const A_,B_:Double ) :Byte; inline; overload;
+
 function MinI( const A_,B_,C_:Integer ) :Integer; inline; overload;
 function MinI( const A_,B_,C_:Single ) :Integer; inline; overload;
 function MinI( const A_,B_,C_:Double ) :Integer; inline; overload;
@@ -247,12 +216,24 @@ function MaxI( const Vs_:array of Double ) :Integer; overload;
 function RealMod( const X_,Range_:Integer ) :Integer; overload;
 function RealMod( const X_,Range_:Int64 ) :Int64; overload;
 
+function RevBytes( const Value_:Word ) :Word; overload;
+function RevBytes( const Value_:Smallint ) :Smallint; overload;
+
+function RevBytes( const Value_:Cardinal ) :Cardinal; overload;
+function RevBytes( const Value_:Integer ) :Integer; overload;
+function RevBytes( const Value_:Single ) :Single; overload;
+
+function RevBytes( const Value_:UInt64 ) :UInt64; overload;
+function RevBytes( const Value_:Int64 ) :Int64; overload;
+function RevBytes( const Value_:Double ) :Double; overload;
+
+function CharsToStr( const Cs_:TArray<AnsiChar> ) :AnsiString;
+
 function FileToBytes( const FileName_:string ) :TBytes;
 
 implementation //############################################################### ■
 
-uses System.Classes, System.Math,
-     FMX.Types;
+uses System.Math;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【レコード】
 
@@ -296,24 +277,6 @@ begin
           m41 := 0;  m42 := 0;  m43 := 0;  m44 := 1;
      end;
 end;
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HBitmapData
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& private
-
-/////////////////////////////////////////////////////////////////////// アクセス
-
-function HBitmapData.GetColor( const X_,Y_:Integer ) :TAlphaColor;
-begin
-     Result := GetPixel( X_, Y_ );
-end;
-
-procedure HBitmapData.SetColor( const X_,Y_:Integer; const Color_:TAlphaColor );
-begin
-     SetPixel( X_, Y_, Color_ );
-end;
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
 
 //%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TRay3D
 
@@ -448,115 +411,67 @@ end;
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【クラス】
 
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HCanvas
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TIter< TValue_ >
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& private
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& protected
-
-/////////////////////////////////////////////////////////////////////// アクセス
-
-function HCanvas.GetMatrix :TMatrix;
-begin
-     with Self do
-     begin
-          Result := FMatrix;
-     end;
-end;
-
-procedure HCanvas.SetMatrix( const Matrix_:TMatrix );
-begin
-     inherited SetMatrix( Matrix_ );
-end;
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
 
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HControl3D
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TFileReader
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& private
 
 //&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& protected
 
-/////////////////////////////////////////////////////////////////////// アクセス
+//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
 
-function HControl3D.GetAbsolMatrix :TMatrix3D;
+constructor TFileReader.Create( Stream_:TStream; Encoding_:TEncoding = nil; OwnsStream_:Boolean = False );
 begin
-     if FRecalcAbsolute then
-     begin
-          if FParent is TControl3D then FAbsoluteMatrix := FLocalMatrix * TControl3D(FParent).AbsoluteMatrix
-                                   else FAbsoluteMatrix := FLocalMatrix;
+     inherited Create( Stream_, TEncoding.ANSI, OwnsStream_ );
 
-          Result := FAbsoluteMatrix;
+     _OffsetBOM := TEncoding.GetBufferEncoding( ReadBytes( 8 ), _Encoding, Encoding_ );
 
-          FInvAbsoluteMatrix := FAbsoluteMatrix.Inverse;
-
-          FRecalcAbsolute := False;
-     end
-     else Result := FAbsoluteMatrix;
+     BaseStream.Position := _OffsetBOM;
 end;
 
-procedure HControl3D.SetAbsoluteMatrix( const AbsoluteMatrix_:TMatrix3D );
+constructor TFileReader.Create( const Filename_:String; Encoding_:TEncoding = nil );
 begin
-        FAbsoluteMatrix := AbsoluteMatrix_;
-     FInvAbsoluteMatrix := AbsoluteMatrix_.Inverse;
-
-     if Assigned( FParent ) and ( FParent is TControl3D )
-     then FLocalMatrix := FAbsoluteMatrix * TControl3D( FParent ).AbsoluteMatrix.Inverse
-     else FLocalMatrix := FAbsoluteMatrix;
-
-     RecalcChildrenAbsolute;
-end;
-
-function HControl3D.GetLocalMatrix :TMatrix3D;
-begin
-     Result := FLocalMatrix;
-end;
-
-procedure HControl3D.SetLocalMatrix( const LocalMatrix_:TMatrix3D );
-begin
-     FLocalMatrix := LocalMatrix_;
-
-     RecalcFamilyAbsolute;
+     Create( TFileStream.Create( Filename_, fmOpenRead or fmShareDenyWrite ), Encoding_, True );
 end;
 
 /////////////////////////////////////////////////////////////////////// メソッド
 
-procedure HControl3D.RecalcFamilyAbsolute;
+function TFileReader.EndOfStream :Boolean;
 begin
-     RecalcAbsolute;
+     Result := ( PeekChar = -1 );
 end;
 
-procedure HControl3D.RecalcChildrenAbsolute;
+function TFileReader.ReadLine :String;
 var
-   F :TFmxObject;
+   Bs :TBytes;
+   B :Byte;
 begin
-     FRecalcAbsolute := False;
+     Bs := [];
 
-     if Assigned( Children ) then
+     while not EndOfStream do
      begin
-          for F in Children do
-          begin
-               if F is TControl3D then TControl3D( F ).RecalcFamilyAbsolute;
+          B := ReadByte;
+
+          case B of
+           10: Break;
+           13: begin
+                    if PeekChar = 10 then ReadByte;
+
+                    Break;
+               end;
+          else Bs := Bs + [ B ];
           end;
      end;
+
+     Result := _Encoding.GetString( Bs );
 end;
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
-
-//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% HCustomMesh
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& private
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& protected
-
-/////////////////////////////////////////////////////////////////////// アクセス
-
-function HCustomMesh.GetMeshData :TMeshData;
-begin
-     Result := Data;
-end;
-
-//&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&&& public
 
 //$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$$【ルーチン】
 
@@ -624,7 +539,7 @@ end;
 
 {$ENDIF}
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 function Pow2( const X_:Integer ) :Integer;
 begin
@@ -641,7 +556,7 @@ begin
      Result := Sqr( X_ );
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 function Pow3( const X_:Integer ) :Integer;
 begin
@@ -658,7 +573,7 @@ begin
      Result := X_ * Pow2( X_ );
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 function Roo2( const X_:Single ) :Single;
 begin
@@ -670,7 +585,7 @@ begin
      Result := Sqrt( X_ );
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 function Roo3( const X_:Single ) :Single;
 begin
@@ -682,7 +597,7 @@ begin
      Result := Power( X_, 1/3 );
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 function ClipRange( const X_,Min_,Max_:Integer ) :Integer;
 begin
@@ -708,7 +623,7 @@ begin
                   else Result := X_;
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 function Min( const A_,B_,C_:Integer ) :Integer;
 begin
@@ -752,7 +667,7 @@ begin
      end;
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 function Max( const A_,B_,C_:Integer ) :Integer;
 begin
@@ -799,7 +714,47 @@ begin
      end;
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
+
+function MinI( const A_,B_:Integer ) :Byte;
+begin
+     if A_ <= B_ then Result := 1
+                 else Result := 2;
+end;
+
+function MinI( const A_,B_:Single ) :Byte;
+begin
+     if A_ <= B_ then Result := 1
+                 else Result := 2;
+end;
+
+function MinI( const A_,B_:Double ) :Byte;
+begin
+     if A_ <= B_ then Result := 1
+                 else Result := 2;
+end;
+
+//------------------------------------------------------------------------------
+
+function MaxI( const A_,B_:Integer ) :Byte;
+begin
+     if A_ <= B_ then Result := 2
+                 else Result := 1;
+end;
+
+function MaxI( const A_,B_:Single ) :Byte;
+begin
+     if A_ <= B_ then Result := 2
+                 else Result := 1;
+end;
+
+function MaxI( const A_,B_:Double ) :Byte;
+begin
+     if A_ <= B_ then Result := 2
+                 else Result := 1;
+end;
+
+//------------------------------------------------------------------------------
 
 function MinI( const A_,B_,C_:Integer ) :Integer;
 begin
@@ -843,7 +798,7 @@ begin
      end;
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 function MaxI( const A_,B_,C_:Integer ) :Integer;
 begin
@@ -887,7 +842,7 @@ begin
      end;
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 function MinI( const Vs_:array of Integer ) :Integer;
 var
@@ -942,7 +897,7 @@ begin
      end
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 function MaxI( const Vs_:array of Integer ) :Integer;
 var
@@ -997,7 +952,7 @@ begin
      end
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
 
 function RealMod( const X_,Range_:Integer ) :Integer;
 begin
@@ -1009,7 +964,108 @@ begin
      Result := X_ mod Range_;  if Result < 0 then Inc( Result, Range_ );
 end;
 
-////////////////////////////////////////////////////////////////////////////////
+//------------------------------------------------------------------------------
+
+function RevBytes( const Value_:Word ) :Word;
+asm
+{$IFDEF CPUX64 }
+   mov rax, rcx
+{$ENDIF}
+   xchg al, ah
+end;
+
+function RevBytes( const Value_:Smallint ) :Smallint;
+asm
+{$IFDEF CPUX64 }
+   mov rax, rcx
+{$ENDIF}
+   xchg al, ah
+end;
+
+//------------------------------------------------------------------------------
+
+function RevBytes( const Value_:Cardinal ) :Cardinal;
+asm
+{$IFDEF CPUX64 }
+   mov rax, rcx
+{$ENDIF}
+   bswap eax
+end;
+
+function RevBytes( const Value_:Integer ) :Integer;
+asm
+{$IFDEF CPUX64 }
+   mov rax, rcx
+{$ENDIF}
+   bswap eax
+end;
+
+function RevBytes( const Value_:Single ) :Single;
+var
+   V :Cardinal;
+begin
+     V := RevBytes( PCardinal( @Value_ )^ );
+
+     Result := PSingle( @V )^;
+end;
+
+//------------------------------------------------------------------------------
+
+function RevBytes( const Value_:UInt64 ) :UInt64;
+asm
+{$IF Defined( CPUX86 ) }
+   mov   edx, [ ebp + $08 ]
+   mov   eax, [ ebp + $0c ]
+   bswap edx
+   bswap eax
+{$ELSEIF Defined( CPUX64 ) }
+   mov   rax, rcx
+   bswap rax
+{$ELSE}
+   {$Message Fatal 'RevByte has not been implemented for this architecture.' }
+{$ENDIF}
+end;
+
+function RevBytes( const Value_:Int64 ) :Int64;
+asm
+{$IF Defined( CPUX86 ) }
+   mov   edx, [ ebp + $08 ]
+   mov   eax, [ ebp + $0c ]
+   bswap edx
+   bswap eax
+{$ELSEIF Defined( CPUX64 ) }
+   mov   rax, rcx
+   bswap rax
+{$ELSE}
+   {$Message Fatal 'RevByte has not been implemented for this architecture.' }
+{$ENDIF}
+end;
+
+function RevBytes( const Value_:Double ) :Double;
+var
+   V :UInt64;
+begin
+     V := RevBytes( PUInt64( @Value_ )^ );
+
+     Result := PDouble( @V )^;
+end;
+
+//------------------------------------------------------------------------------
+
+function CharsToStr( const Cs_:TArray<AnsiChar> ) :AnsiString;
+var
+   I :Integer;
+begin
+     Result := '';
+
+     for I := 0 to High( Cs_ ) do
+     begin
+          if Cs_[ I ] = Char(nil) then Result := Result + CRLF
+                                  else Result := Result + Cs_[ I ];
+     end;
+end;
+
+//------------------------------------------------------------------------------
 
 function FileToBytes( const FileName_:string ) :TBytes;
 begin
