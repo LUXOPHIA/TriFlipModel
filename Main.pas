@@ -28,8 +28,8 @@ type
     _MouseP :TPointF;
   public
     { public êÈåæ }
-    _FaceModel  :TTriFaceModel3D;
-    _FaceObject :TTriFaceObject3D;
+    _FaceModel :TTriFaceModel3D;
+    _FaceShape :TTriFaceShape3D;
   end;
 
 var
@@ -59,9 +59,9 @@ begin
           Texture.LoadFromFile( '..\..\_DATA\Texture.bmp' );
      end;
 
-     _FaceObject := TTriFaceObject3D.Create( Self );
+     _FaceShape := TTriFaceShape3D.Create( Self );
 
-     with _FaceObject do
+     with _FaceShape do
      begin
           Parent := Viewport3D1;
 
